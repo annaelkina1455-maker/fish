@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>МГТУ — AR-гид: Аквариум коворкинга библиотеки</title>
+
+  <!-- ============================================================ -->
+  <!-- ПОДКЛЮЧЕНИЕ БИБЛИОТЕК                                        -->
+  <!-- ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.6.0/dist/aframe-master.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/aframe/build/aframe-ar.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+
+  <!-- ============================================================ -->
+  <!-- СТИЛИ (тот же фирменный шаблон МГТУ, что и в других AR-сценах) -->
+  <!-- ============================================================ -->
+  <style>
+    :root {
+      --mgtu-dark-blue: #0B2A4A;
+      --mgtu-white: #FFFFFF;
+      --mgtu-accent: #4FA8D8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    .logo-badge {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: 60px;
+      height: 60px;
+      z-index: 20;
+      background: var(--mgtu-white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+    .logo-badge img { width: 80%; height: 80%; object-fit: contain; }
+    .logo-fallback {
+      color: var(--mgtu-dark-blue);
+      font-weight: 800;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+    }
+
+    .info-card {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translate(-50%, 24px);
+      width: min(92%, 420px);
+      background: rgba(11, 42, 74, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 16px;
+      padding: 16px 20px;
+      color: var(--mgtu-white);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      z-index: 20;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+    }
+    .info-card.visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+      pointer-events: auto;
+    }
+    .info-card h2 { margin: 0 0 6px; font-size: 1.05rem; font-weight: 700; color: var(--mgtu-white); }
+    .info-card h2 .accent { color: var(--mgtu-accent); }
+    .info-card p { margin: 0; font-size: 0.88rem; line-height: 1.45; opacity: 0.95; }
+
+    .hint-badge {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(11, 42, 74, 0.85);
+      color: var(--mgtu-white);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      z-index: 20;
+      transition: opacity 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .hint-badge.hidden { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+
+<body>
+
+  <div class="logo-badge">
+    <img src="logo.png" alt="Логотип МГТУ"
+         onerror="this.parentElement.innerHTML='<span class=&quot;logo-fallback&quot;>МГТУ</span>'">
+  </div>
+
+  <div class="info-card" id="info-card">
+    <h2>Аквариум <span class="accent">коворкинга библиотеки</span></h2>
+    <p>
+      Часть уютной зоны отдыха библиотеки МГТУ — современного пространства
+      с мультимедийными возможностями для чтения, учёбы и проектной работы.
+    </p>
+  </div>
+
+  <div class="hint-badge" id="hint">
+    Наведите камеру на маркер
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- AR-СЦЕНА                                                      -->
+  <!-- ============================================================ -->
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;"
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true;"
+  >
+
+    <a-entity light="type: ambient; color: #FFFFFF; intensity: 0.9"></a-entity>
+    <a-entity light="type: directional; color: #FFFFFF; intensity: 0.6" position="1 1 1"></a-entity>
+
+    <!--
+      МАРКЕР — стандартный встроенный Hiro (по вашему запросу для этого приложения).
+      Картинку маркера легко найти по запросу "AR.js hiro marker" и распечатать.
+    -->
+    <a-marker preset="hiro" marker-handler>
+
+      <!-- Вся сцена аквариума масштабируется одним числом — поменяйте scale,
+           если хотите аквариум крупнее/мельче относительно маркера -->
+      <a-entity id="aquarium-group" position="0 0 0" scale="0.38 0.38 0.38">
+
+        <!-- Стеклянный корпус аквариума -->
+        <a-box position="0 0.65 0" width="1.8" height="1.3" depth="1.2"
+               material="color:#4FA8D8; opacity:0.15; transparent:true; side:double"></a-box>
+        <a-box position="0 0.65 0" width="1.8" height="1.3" depth="1.2"
+               material="color:#FFFFFF; wireframe:true; opacity:0.5"></a-box>
+
+        <!-- Песчаное дно -->
+        <a-box position="0 0.02 0" width="1.7" height="0.04" depth="1.1" color="#E8D9B5"></a-box>
+
+        <!-- Водоросли (покачиваются) -->
+        <a-entity position="-0.6 0 0.3">
+          <a-cylinder radius="0.02" height="0.5" color="#0F6E56" position="0 0.25 0"
+                      animation="property: rotation; to: 0 0 10; dir: alternate; loop: true; dur: 1500; easing: easeInOutSine"></a-cylinder>
+        </a-entity>
+        <a-entity position="0.55 0 -0.25">
+          <a-cylinder radius="0.018" height="0.4" color="#085041" position="0 0.2 0"
+                      animation="property: rotation; to: 0 0 -8; dir: alternate; loop: true; dur: 1800; easing: easeInOutSine"></a-cylinder>
+        </a-entity>
+
+        <!-- Камни -->
+        <a-sphere radius="0.08" scale="1.4 0.6 1.2" color="#5F5E5A" position="0.5 0.04 -0.2"></a-sphere>
+        <a-sphere radius="0.06" scale="1.3 0.5 1.1" color="#444441" position="-0.3 0.03 -0.35"></a-sphere>
+
+        <!-- Табличка-вывеска МГТУ позади аквариума -->
+        <a-entity position="0 0.55 -0.75">
+          <a-plane width="0.9" height="0.32" color="#0B2A4A" material="shader:flat"></a-plane>
+          <a-text value="МГТУ" align="center" color="#FFFFFF" width="1.6" position="0 0.06 0.01"></a-text>
+          <a-text value="Коворкинг библиотеки" align="center" color="#FFFFFF" width="1.0" position="0 -0.07 0.01"></a-text>
+        </a-entity>
+
+        <!-- Пузырьки (несколько, поднимаются и исчезают, затем зацикливаются) -->
+        <a-sphere radius="0.025" color="#FFFFFF" material="opacity:0.5; transparent:true" position="0.3 0.1 0.2"
+                   animation="property: position; to: 0.3 1.25 0.2; dur: 3000; loop: true; easing: linear"
+                   animation__fade="property: material.opacity; to: 0; dur: 3000; loop: true; easing: linear"></a-sphere>
+        <a-sphere radius="0.02" color="#FFFFFF" material="opacity:0.5; transparent:true" position="-0.2 0.1 -0.1"
+                   animation="property: position; to: -0.2 1.2 -0.1; dur: 2600; loop: true; delay: 800; easing: linear"
+                   animation__fade="property: material.opacity; to: 0; dur: 2600; loop: true; delay: 800; easing: linear"></a-sphere>
+        <a-sphere radius="0.022" color="#FFFFFF" material="opacity:0.5; transparent:true" position="0.05 0.1 0.35"
+                   animation="property: position; to: 0.05 1.3 0.35; dur: 3400; loop: true; delay: 1600; easing: linear"
+                   animation__fade="property: material.opacity; to: 0; dur: 3400; loop: true; delay: 1600; easing: linear"></a-sphere>
+
+        <!-- Сюда JS-код добавит рыбок -->
+        <a-entity id="fish-container"></a-entity>
+
+      </a-entity>
+
+    </a-marker>
+
+    <a-entity camera></a-entity>
+
+  </a-scene>
+
+  <!-- ============================================================ -->
+  <!-- JS-ЛОГИКА: создание рыбок и переключение инфо-панели          -->
+  <!-- ============================================================ -->
+  <script>
+    // ------------------------------------------------------------
+    // НАСТРОЙКА РЫБОК
+    // Чтобы добавить/убрать рыбку или поменять её цвет/скорость —
+    // просто добавьте/удалите/измените строку в этом массиве.
+    // radius   — радиус кругового заплыва (м, в условных единицах сцены)
+    // height   — высота, на которой плывёт рыбка
+    // duration — за сколько мс рыбка делает один круг (больше = медленнее)
+    // dir      — направление: 1 по часовой, -1 против часовой
+    // color    — цвет тела рыбки
+    // fin      — цвет хвостового плавника
+    // scale    — размер рыбки относительно базового
+    // ------------------------------------------------------------
+    var FISH = [
+      { radius: 0.50, height: 0.35, duration: 9000,  dir:  1, color: '#0B2A4A', fin: '#FFFFFF', scale: 1.0 },
+      { radius: 0.35, height: 0.55, duration: 7000,  dir: -1, color: '#FFFFFF', fin: '#0B2A4A', scale: 0.8 },
+      { radius: 0.55, height: 0.75, duration: 11000, dir:  1, color: '#4FA8D8', fin: '#FFFFFF', scale: 0.9 },
+      { radius: 0.40, height: 0.45, duration: 8000,  dir: -1, color: '#0B2A4A', fin: '#4FA8D8', scale: 0.7 },
+      { radius: 0.30, height: 0.65, duration: 6500,  dir:  1, color: '#FFFFFF', fin: '#0B2A4A', scale: 0.6 }
+    ];
+
+    function buildFish() {
+      var container = document.getElementById('fish-container');
+
+      FISH.forEach(function (f) {
+        // "Ось вращения" — пустая точка в центре аквариума.
+        // Рыбка прикреплена к ней на расстоянии radius и едет по кругу
+        // вместе с её вращением — отсюда и круговой "заплыв".
+        var pivot = document.createElement('a-entity');
+        pivot.setAttribute('position', '0 ' + f.height + ' 0');
+        pivot.setAttribute('animation', 'property: rotation; to: 0 ' + (f.dir * 360) + ' 0; loop: true; dur: ' + f.duration + '; easing: linear');
+
+        // Сама рыбка — смещена от оси вращения на radius
+        var fish = document.createElement('a-entity');
+        fish.setAttribute('position', f.radius + ' 0 0');
+        // Если рыбка будет плыть "хвостом вперёд" — поменяйте 90 на -90 здесь
+        fish.setAttribute('rotation', '0 90 0');
+        fish.setAttribute('scale', f.scale + ' ' + f.scale + ' ' + f.scale);
+
+        // Лёгкое покачивание вверх-вниз для живости
+        fish.setAttribute('animation__bob', 'property: position; to: ' + f.radius + ' 0.05 0; dir: alternate; loop: true; dur: 1300; easing: easeInOutSine');
+
+        // Тело — конус, положенный набок (даёт форму капли/торпеды)
+        var body = document.createElement('a-cone');
+        body.setAttribute('radius-bottom', '0.16');
+        body.setAttribute('radius-top', '0.01');
+        body.setAttribute('height', '0.55');
+        body.setAttribute('rotation', '-90 0 0');
+        body.setAttribute('color', f.color);
+        fish.appendChild(body);
+
+        // Хвостовой плавник — приплюснутый конус сзади, покачивается из стороны в сторону
+        var tail = document.createElement('a-cone');
+        tail.setAttribute('radius-bottom', '0.18');
+        tail.setAttribute('radius-top', '0');
+        tail.setAttribute('height', '0.22');
+        tail.setAttribute('position', '0 0 0.32');
+        tail.setAttribute('rotation', '-90 0 0');
+        tail.setAttribute('scale', '1.3 1 0.25');
+        tail.setAttribute('color', f.fin);
+        tail.setAttribute('animation', 'property: rotation; to: -90 18 0; dir: alternate; loop: true; dur: 450; easing: easeInOutSine');
+        fish.appendChild(tail);
+
+        // Глаз
+        var eye = document.createElement('a-sphere');
+        eye.setAttribute('radius', '0.02');
+        eye.setAttribute('color', '#111111');
+        eye.setAttribute('position', '0.07 0.04 -0.22');
+        fish.appendChild(eye);
+
+        pivot.appendChild(fish);
+        container.appendChild(pivot);
+      });
+    }
+
+    document.querySelector('a-scene').addEventListener('loaded', buildFish);
+
+    // Показ/скрытие инфо-панели при наведении на маркер (как и в других сценах гида)
+    AFRAME.registerComponent('marker-handler', {
+      init: function () {
+        var infoCard = document.getElementById('info-card');
+        var hint = document.getElementById('hint');
+
+        this.el.addEventListener('markerFound', function () {
+          infoCard.classList.add('visible');
+          hint.classList.add('hidden');
+        });
+
+        this.el.addEventListener('markerLost', function () {
+          infoCard.classList.remove('visible');
+          hint.classList.remove('hidden');
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>
