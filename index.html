@@ -10,6 +10,8 @@
   <!-- ============================================================ -->
   <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.6.0/dist/aframe-master.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/aframe/build/aframe-ar.js"></script>
+  <!-- aframe-extras — для проигрывания встроенной анимации плавания у 3D-моделей рыбок -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras/dist/aframe-extras.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
 
   <!-- ============================================================ -->
@@ -195,23 +197,37 @@
   <!-- ============================================================ -->
   <script>
     // ------------------------------------------------------------
+    // 3D-МОДЕЛИ РЫБОК
+    // Используется бесплатный пакет анимированных рыбок Quaternius
+    // (лицензия CC0 — можно использовать без ограничений).
+    // Источник: https://poly.pizza/bundle/Animated-Fish-Bundle-ZkGbjS8m8g
+    // ------------------------------------------------------------
+    var FISH_MODELS = [
+      'https://static.poly.pizza/311a79f6-ba3e-47aa-80ce-04185fc76b2a.glb',
+      'https://static.poly.pizza/6805b99c-5fd7-4aab-bf57-3bb645e1108a.glb',
+      'https://static.poly.pizza/8410757e-6594-4011-817a-633730fbcaf8.glb'
+    ];
+
+    // ------------------------------------------------------------
     // НАСТРОЙКА РЫБОК
-    // Чтобы добавить/убрать рыбку или поменять её цвет/скорость —
+    // Чтобы добавить/убрать рыбку или поменять её путь/скорость —
     // просто добавьте/удалите/измените строку в этом массиве.
-    // radius   — радиус кругового заплыва (м, в условных единицах сцены)
+    // model    — индекс модели из FISH_MODELS (0, 1 или 2)
+    // radius   — радиус кругового заплыва (в условных единицах сцены)
     // height   — высота, на которой плывёт рыбка
     // duration — за сколько мс рыбка делает один круг (больше = медленнее)
     // dir      — направление: 1 по часовой, -1 против часовой
-    // color    — цвет тела рыбки
-    // fin      — цвет хвостового плавника
-    // scale    — размер рыбки относительно базового
+    // scale    — размер рыбки. ЭТО ПЕРВОЕ, что стоит подправить после
+    //            первого теста — у настоящих 3D-моделей родной размер
+    //            заранее не известен, пока не увидите их в AR вживую.
     // ------------------------------------------------------------
     var FISH = [
-      { radius: 0.50, height: 0.35, duration: 9000,  dir:  1, color: '#0B2A4A', fin: '#FFFFFF', scale: 1.0 },
-      { radius: 0.35, height: 0.55, duration: 7000,  dir: -1, color: '#FFFFFF', fin: '#0B2A4A', scale: 0.8 },
-      { radius: 0.55, height: 0.75, duration: 11000, dir:  1, color: '#4FA8D8', fin: '#FFFFFF', scale: 0.9 },
-      { radius: 0.40, height: 0.45, duration: 8000,  dir: -1, color: '#0B2A4A', fin: '#4FA8D8', scale: 0.7 },
-      { radius: 0.30, height: 0.65, duration: 6500,  dir:  1, color: '#FFFFFF', fin: '#0B2A4A', scale: 0.6 }
+      { model: 0, radius: 0.50, height: 0.35, duration: 9000,  dir:  1, scale: 0.26 },
+      { model: 1, radius: 0.35, height: 0.55, duration: 7000,  dir: -1, scale: 0.22 },
+      { model: 2, radius: 0.55, height: 0.70, duration: 11000, dir:  1, scale: 0.28 },
+      { model: 0, radius: 0.40, height: 0.45, duration: 8000,  dir: -1, scale: 0.20 },
+      { model: 1, radius: 0.30, height: 0.60, duration: 6500,  dir:  1, scale: 0.18 },
+      { model: 2, radius: 0.45, height: 0.50, duration: 10000, dir: -1, scale: 0.24 }
     ];
 
     function buildFish() {
@@ -225,47 +241,63 @@
         pivot.setAttribute('position', '0 ' + f.height + ' 0');
         pivot.setAttribute('animation', 'property: rotation; to: 0 ' + (f.dir * 360) + ' 0; loop: true; dur: ' + f.duration + '; easing: linear');
 
-        // Сама рыбка — смещена от оси вращения на radius
-        var fish = document.createElement('a-entity');
-        fish.setAttribute('position', f.radius + ' 0 0');
+        // Обёртка рыбки — смещена от оси вращения на radius
+        var fishWrap = document.createElement('a-entity');
+        fishWrap.setAttribute('position', f.radius + ' 0 0');
         // Если рыбка будет плыть "хвостом вперёд" — поменяйте 90 на -90 здесь
-        fish.setAttribute('rotation', '0 90 0');
-        fish.setAttribute('scale', f.scale + ' ' + f.scale + ' ' + f.scale);
+        fishWrap.setAttribute('rotation', '0 90 0');
+        fishWrap.setAttribute('scale', f.scale + ' ' + f.scale + ' ' + f.scale);
 
         // Лёгкое покачивание вверх-вниз для живости
-        fish.setAttribute('animation__bob', 'property: position; to: ' + f.radius + ' 0.05 0; dir: alternate; loop: true; dur: 1300; easing: easeInOutSine');
+        fishWrap.setAttribute('animation__bob', 'property: position; to: ' + f.radius + ' 0.04 0; dir: alternate; loop: true; dur: 1300; easing: easeInOutSine');
 
-        // Тело — конус, положенный набок (даёт форму капли/торпеды)
-        var body = document.createElement('a-cone');
-        body.setAttribute('radius-bottom', '0.16');
-        body.setAttribute('radius-top', '0.01');
-        body.setAttribute('height', '0.55');
-        body.setAttribute('rotation', '-90 0 0');
-        body.setAttribute('color', f.color);
-        fish.appendChild(body);
+        // Сама 3D-модель рыбки + проигрывание её встроенной анимации плавания
+        var model = document.createElement('a-entity');
+        model.setAttribute('gltf-model', FISH_MODELS[f.model]);
+        model.setAttribute('animation-mixer', 'loop: repeat');
 
-        // Хвостовой плавник — приплюснутый конус сзади, покачивается из стороны в сторону
-        var tail = document.createElement('a-cone');
-        tail.setAttribute('radius-bottom', '0.18');
-        tail.setAttribute('radius-top', '0');
-        tail.setAttribute('height', '0.22');
-        tail.setAttribute('position', '0 0 0.32');
-        tail.setAttribute('rotation', '-90 0 0');
-        tail.setAttribute('scale', '1.3 1 0.25');
-        tail.setAttribute('color', f.fin);
-        tail.setAttribute('animation', 'property: rotation; to: -90 18 0; dir: alternate; loop: true; dur: 450; easing: easeInOutSine');
-        fish.appendChild(tail);
+        // Если по какой-то причине модель не загрузится (например, нет
+        // интернета в моменте показа) — подставляем простую запасную
+        // рыбку, чтобы демонстрация не выглядела "пустой" или сломанной.
+        model.addEventListener('model-error', function () {
+          console.warn('3D-модель рыбки не загрузилась, показываю запасной вариант');
+          model.removeAttribute('gltf-model');
+          model.removeAttribute('animation-mixer');
+          buildFallbackFish(model);
+        });
 
-        // Глаз
-        var eye = document.createElement('a-sphere');
-        eye.setAttribute('radius', '0.02');
-        eye.setAttribute('color', '#111111');
-        eye.setAttribute('position', '0.07 0.04 -0.22');
-        fish.appendChild(eye);
-
-        pivot.appendChild(fish);
+        fishWrap.appendChild(model);
+        pivot.appendChild(fishWrap);
         container.appendChild(pivot);
       });
+    }
+
+    // Запасной вариант рыбки (простые фигуры) — используется только
+    // если настоящая 3D-модель не смогла загрузиться
+    function buildFallbackFish(parent) {
+      var body = document.createElement('a-cone');
+      body.setAttribute('radius-bottom', '0.16');
+      body.setAttribute('radius-top', '0.01');
+      body.setAttribute('height', '0.55');
+      body.setAttribute('rotation', '-90 0 0');
+      body.setAttribute('color', '#0B2A4A');
+      parent.appendChild(body);
+
+      var tail = document.createElement('a-cone');
+      tail.setAttribute('radius-bottom', '0.18');
+      tail.setAttribute('radius-top', '0');
+      tail.setAttribute('height', '0.22');
+      tail.setAttribute('position', '0 0 0.32');
+      tail.setAttribute('rotation', '-90 0 0');
+      tail.setAttribute('scale', '1.3 1 0.25');
+      tail.setAttribute('color', '#FFFFFF');
+      parent.appendChild(tail);
+
+      var eye = document.createElement('a-sphere');
+      eye.setAttribute('radius', '0.02');
+      eye.setAttribute('color', '#111111');
+      eye.setAttribute('position', '0.07 0.04 -0.22');
+      parent.appendChild(eye);
     }
 
     document.querySelector('a-scene').addEventListener('loaded', buildFish);
